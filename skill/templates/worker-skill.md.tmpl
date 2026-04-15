@@ -1,0 +1,58 @@
+---
+name: {{WORKER_NAME}}
+description: >
+  {{WORKER_DESCRIPTION}}
+type: worker
+version: "1.0.0"
+
+orpheus:
+  system: "{{SYSTEM_NAME}}"
+  tags: [worker, {{SYSTEM_NAME}}]
+
+concurrency:
+  mode: sequential
+
+agent:
+  model: {{MODEL_PREFERENCE}}
+  color: green
+  tools: {{TOOLS}}
+---
+
+# {{WORKER_NAME}}
+
+## Purpose
+
+{{PURPOSE}}
+
+## Task Protocol
+
+Follow these steps in order:
+
+{{TASK_PROTOCOL}}
+
+## Output Format
+
+Write your result as YAML to the result_path provided in your task context:
+
+```yaml
+{{OUTPUT_FORMAT}}
+```
+
+## Constraints
+
+{{CONSTRAINTS}}
+
+- You are a LEAF NODE — you MUST NOT spawn other workers or agents
+- You MUST write your result to the exact result_path provided
+- You MUST stay within the scope of the task described in your context
+- If you cannot complete the task, write a result with `status: failed` and explain why
+
+## Logging Protocol
+
+Write log entries as `entry-{{WORKER_NAME}}-NNN.yaml` files to your log_path directory. At minimum:
+
+1. **skill.invoked** — when you start, summarizing the task you received
+2. **Actions taken** — what tools you used, what queries you ran (category: action)
+3. **skill.completed** — when you finish, summarizing your output
+
+If you make any judgment calls during execution, log them as decision entries with reasoning.

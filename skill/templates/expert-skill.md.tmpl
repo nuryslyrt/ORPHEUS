@@ -1,0 +1,81 @@
+---
+name: {{EXPERT_NAME}}
+description: >
+  {{EXPERT_DESCRIPTION}}
+type: expert
+version: "1.0.0"
+
+orpheus:
+  system: "{{SYSTEM_NAME}}"
+  tags: [expert, {{SYSTEM_NAME}}]
+
+concurrency:
+  mode: adaptive
+  max_parallel: 3
+
+agent:
+  model: inherit
+  color: cyan
+  tools: ["Read", "Write", "Bash", "Glob", "Grep", "WebSearch", "WebFetch", "Agent"]
+---
+
+# {{EXPERT_NAME}}
+
+## Role
+
+{{ROLE_DESCRIPTION}}
+
+## Contract Summary
+
+**Input:** {{CONTRACT_INPUT_SUMMARY}}
+**Output:** {{CONTRACT_OUTPUT_SUMMARY}}
+
+## Available Workers
+
+{{WORKER_TABLE}}
+
+To use a worker: read its SKILL.md from the path above, then dispatch it as a subagent following the dispatch protocol.
+
+## Execution Protocol
+
+{{EXECUTION_PROTOCOL}}
+
+## Quality Gate
+
+Before writing your final result, verify ALL of the following:
+
+{{QUALITY_GATE}}
+
+- [ ] All required output fields from your contract are present
+- [ ] Output format matches expected_output.format from the job definition
+- [ ] If workers were used, their outputs are synthesized (not just concatenated)
+- [ ] Your confidence/quality assessment is realistic
+
+Only write to result_path after passing the quality gate.
+
+## Error Handling
+
+- If a worker fails: retry once with clarified instructions. If still fails, attempt the task directly.
+- If you cannot fulfill the job: write a result with `status: failed` and include an error description explaining what went wrong and why.
+- If the job input is unclear or incomplete: do your best with what you have and note assumptions in the result.
+
+## Logging Protocol
+
+Write log entries as `entry-NNN.yaml` files to your log_path directory. You MUST log:
+
+1. **skill.invoked** — when you start
+2. **Complexity assessment** — decision: work alone or delegate to workers? Why?
+3. **Worker selection** — if delegating: which workers and why?
+4. **Every worker dispatch** — worker name, task summary, batch_id for parallel dispatches
+5. **Every worker result** — what you received, contract compliance
+6. **Quality gate result** — pass/fail with details
+7. **skill.completed** — when you finish, with duration and output summary
+
+Every decision entry MUST include: question, options_considered (2+), chosen, reasoning, confidence.
+
+## Anti-Patterns
+
+- **Don't skip the quality gate.** Producing output without validation leads to cascading failures downstream.
+- **Don't use all available workers "just in case."** Assess complexity first — simple jobs don't need workers.
+- **Don't ignore worker failures.** Either retry, work around, or report the failure clearly.
+- **Don't forget to log decisions.** The Doctor depends on your reasoning trail to diagnose issues.

@@ -1,0 +1,25 @@
+system:
+  name: "{{SYSTEM_NAME}}"
+  description: "{{SYSTEM_DESCRIPTION}}"
+
+orchestrator:
+  strategy: {{STRATEGY}}
+  max_retries: 2
+  timeout_seconds: 300
+  escalation: user
+  routing:
+{{ROUTING_RULES}}
+
+logging:
+  level: info
+  log_actions: true
+  log_decisions: true
+  log_contracts: true
+  log_lifecycle: true
+  log_delegations: true
+  assemble_timeline: true
+  assemble_decisions: true
+  assemble_errors: true
+  retain_last: 20
+  log_builds: true
+  build_retain_last: 10
