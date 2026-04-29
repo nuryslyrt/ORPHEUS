@@ -1,0 +1,224 @@
+# ORPHEUS Default Assurance Claim Catalog
+#
+# This is the baseline claim matrix the Auditor uses when a system has no
+# .orpheus/claims.yaml override. Each claim corresponds to one of the seven
+# structural checks that existed before Stage 1 of Provable Assurance, now
+# framed with explicit validation methods, evidence sources, renewal triggers,
+# owners, and risk tiers.
+#
+# System authors can override or extend this catalog by creating
+# .orpheus/claims.yaml. See references/schemas/claim-schema.md for the merge
+# semantics.
+
+version: "1.0"
+extends_default: false   # This IS the default — it does not extend anything.
+
+claims:
+  # ---------------------------------------------------------------------------
+  # Claim 1: Registry Integrity
+  # Source check (pre-Stage-1): Check 1 — Registry Integrity
+  # ---------------------------------------------------------------------------
+  - id: artifact_integrity
+    statement: >
+      Every skill listed in the registry exists on disk with a well-formed
+      SKILL.md and contract.yaml, every path is reachable, and there are no
+      duplicate or orphaned skill entries.
+    validation_method: evidence
+    evidence_source:
+      - registry.yaml
+      - "**/SKILL.md"
+      - "**/contract.yaml"
+    renewal_trigger: >
+      registry.yaml is modified, any SKILL.md or contract.yaml is added,
+      removed, or renamed.
+    next_review_required_on: "registry.yaml:modified OR skill_inventory:changed"
+    owner: surgeon
+    risk_tier: critical
+    tags: [structural, inventory]
+    checker:
+      worker: registry-updater
+      operation: scan
+
+  # ---------------------------------------------------------------------------
+  # Claim 2: Contract Compatibility
+  # Source check (pre-Stage-1): Check 2 — Contract Compatibility
+  # ---------------------------------------------------------------------------
+  - id: tool_contract_soundness
+    statement: >
+      Every producer/consumer contract chain has matching required fields
+      with compatible types. No downstream skill declares an input that no
+      upstream skill produces.
+    validation_method: policy-as-code
+    evidence_source:
+      - "**/contract.yaml"
+    renewal_trigger: >
+      Any contract.yaml modified, or new skill added with a new contract.
+    next_review_required_on: "**/contract.yaml:modified"
+    owner: surgeon
+    risk_tier: high
+    tags: [correctness, composition, authorization]
+    checker:
+      worker: contract-compat-checker
+      operation: full
+
+  # ---------------------------------------------------------------------------
+  # Claim 3: DAG Validity
+  # Source check (pre-Stage-1): Check 3 — DAG Validity
+  # This is the one claim ORPHEUS can genuinely label `proof` — DAG acyclicity
+  # is mathematically decidable.
+  # ---------------------------------------------------------------------------
+  - id: workflow_termination
+    statement: >
+      The job dependency graph is a directed acyclic graph. Execution always
+      terminates in a bounded number of batches; no cycles or dangling
+      references exist.
+    validation_method: proof
+    evidence_source:
+      - registry.yaml
+      - orchestrator/SKILL.md
+    renewal_trigger: >
+      Any dependency edge added, removed, or retargeted. Any change to
+      orchestrator routing rules that could affect job chaining.
+    next_review_required_on: "registry.yaml:modified OR orchestrator/SKILL.md:routing_changed"
+    owner: surgeon
+    risk_tier: critical
+    tags: [correctness, structural, termination]
+    checker:
+      worker: dag-validator
+      operation: full_check
+
+  # ---------------------------------------------------------------------------
+  # Claim 4: Skill Quality
+  # Source check (pre-Stage-1): Check 4 — Skill Quality
+  # ---------------------------------------------------------------------------
+  - id: skill_definition_completeness
+    statement: >
+      Every SKILL.md declares required frontmatter fields (name, description,
+      type, version, orpheus.system), every expert SKILL.md contains an
+      Execution Protocol and a Quality Gate, every worker SKILL.md contains
+      a Task Protocol and an Output Format, and every skill contains a
+      Logging Protocol section.
+    validation_method: policy-as-code
+    evidence_source:
+      - "**/SKILL.md"
+    renewal_trigger: >
+      Any SKILL.md modified, added, or removed.
+    next_review_required_on: "**/SKILL.md:modified"
+    owner: doctor
+    risk_tier: high
+    tags: [structural, quality]
+    # No worker — Auditor performs this check directly by reading each SKILL.md
+
+  # ---------------------------------------------------------------------------
+  # Claim 5: Orchestrator Coverage
+  # Source check (pre-Stage-1): Check 5 — Orchestrator Coverage
+  # ---------------------------------------------------------------------------
+  - id: routing_totality
+    statement: >
+      Every expert listed in the registry has at least one orchestrator
+      routing rule that can direct work to it. No ambiguous patterns exist
+      where two rules could match the same input. A catch-all or explicit
+      fallback exists for unmatched requests.
+    validation_method: policy-as-code
+    evidence_source:
+      - orchestrator/SKILL.md
+      - registry.yaml
+    renewal_trigger: >
+      Orchestrator SKILL.md routing rules modified, or registry experts
+      list changes.
+    next_review_required_on: "orchestrator/SKILL.md:modified OR registry.yaml:experts_changed"
+    owner: doctor
+    risk_tier: high
+    tags: [routing, completeness, authorization]
+    # No worker — Auditor parses the routing rules table directly
+
+  # ---------------------------------------------------------------------------
+  # Claim 6: Log Health
+  # Source check (pre-Stage-1): Check 6 — Log Health
+  # ---------------------------------------------------------------------------
+  - id: observability_integrity
+    statement: >
+      The .orpheus/logs/ directory structure is correct, every recent
+      execution has assembled log views (timeline, decisions, errors), and
+      no log entry files are corrupted or unreadable.
+    validation_method: evidence
+    evidence_source:
+      - "logs/"
+      - "logs/runtime/**/entry-*.yaml"
+      - "logs/runtime/**/*.log.yaml"
+    renewal_trigger: >
+      A new execution completes without having assemble-logs.py run, or
+      logs directory structure is altered.
+    next_review_required_on: "logs/runtime:new_execution_without_assembly"
+    owner: doctor
+    risk_tier: medium
+    tags: [observability, evidence]
+    checker:
+      worker: log-analyzer
+      operation: health_check
+
+  # ---------------------------------------------------------------------------
+  # Claim 7: Configuration Validity
+  # Source check (pre-Stage-1): Check 7 — Configuration Validity
+  # ---------------------------------------------------------------------------
+  - id: configuration_validity
+    statement: >
+      The system configuration (system.yaml) is well-formed, declares all
+      required fields with valid values, and the generated system is
+      self-contained — .orpheus/scripts/ directory exists with the four
+      runtime scripts (generate-id.py, validate-yaml.py, init-execution.sh,
+      assemble-logs.py).
+    validation_method: evidence
+    evidence_source:
+      - system.yaml
+      - "scripts/"
+    renewal_trigger: >
+      system.yaml modified, or scripts/ directory contents change.
+    next_review_required_on: "system.yaml:modified OR scripts/:contents_changed"
+    owner: doctor
+    risk_tier: medium
+    tags: [configuration, self_containment]
+    # No worker — Auditor reads system.yaml and checks scripts/ directly
+
+  # ---------------------------------------------------------------------------
+  # Stage 2+ placeholder claims
+  # ---------------------------------------------------------------------------
+  # These are intentionally declared with unimplemented validation methods so
+  # that Stage 1 evidence packages surface them as `unverified`. This makes
+  # the Stage 2+ roadmap visible in every audit report rather than hidden in
+  # documentation. A reviewer reading the evidence package can see exactly
+  # what ORPHEUS does not yet validate.
+  #
+  # These claims can be removed from the default catalog if a system author
+  # finds them distracting — override with `extends_default: false` and omit
+  # them.
+  # ---------------------------------------------------------------------------
+
+  - id: decision_consistency
+    statement: >
+      Decision log entries across executions do not contradict each other.
+      When the same question is decided differently in similar contexts,
+      the reasoning explains why.
+    validation_method: policy-as-code
+    evidence_source:
+      - "logs/runtime/**/decisions.log.yaml"
+    renewal_trigger: "New execution completes."
+    owner: doctor
+    risk_tier: medium
+    tags: [reasoning, stage2_preview]
+    # Stage 1: reports as unverified with reason "Stage 2 capability"
+
+  - id: information_flow_boundaries
+    statement: >
+      Workers are only dispatched by experts that list them in the registry's
+      compatible_workers field. No worker is invoked outside its declared
+      caller set at runtime.
+    validation_method: runtime
+    evidence_source:
+      - "logs/runtime/**/entry-*.yaml"
+      - registry.yaml
+    renewal_trigger: "New execution completes, or registry compatible_workers changes."
+    owner: doctor
+    risk_tier: high
+    tags: [authorization, data_flow, stage2_preview]
+    # Stage 1: reports as unverified with reason "runtime validation not implemented"

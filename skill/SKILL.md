@@ -40,7 +40,7 @@ A generated ORPHEUS system contains:
 |--------|--------|---------|------------|
 | **Builder** | Active | Creates new ORPHEUS systems from NL descriptions | `references/experts/builder.md` |
 | **Doctor** | Active | Diagnosis, debugging, and behavioral fixes | `references/experts/doctor.md` |
-| **Auditor** | Active | Health checks and system validation | `references/experts/auditor.md` |
+| **Auditor** | Active | Health checks, provable assurance claim matrix, evidence package generation | `references/experts/auditor.md` |
 | **Surgeon** | Active | Structural modifications (add/remove/restructure skills) | `references/experts/surgeon.md` |
 
 ## Available Workers (used by experts)
@@ -367,3 +367,7 @@ The complete ORPHEUS architecture is documented in the project's `DESIGN.md`. Ke
 - Section 6: Concurrency Model (parallel execution)
 - Section 8: Observability & Logging (structured logging)
 - Section 17: ORPHEUS Meta-System (this meta-system's architecture)
+
+## Provable Assurance
+
+The Auditor evaluates each system against an explicit assurance claim matrix and emits an evidence package suitable for renewable approval decisions. See `references/PROVABLE_ASSURANCE.md` for the framing, `references/schemas/claim-schema.md` for the claim format, `references/schemas/evidence-package-schema.md` for the output artifact, and `references/claims/default-claims.yaml` for the default claim catalog.

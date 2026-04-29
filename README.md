@@ -288,6 +288,8 @@ Every level preserves the original. The Doctor — and you — always see the ro
 
 **[PRINCIPLES.md](PRINCIPLES.md):** The 10 core principles — the philosophical foundation 
 
+**[skill/references/PROVABLE_ASSURANCE.md](skill/references/PROVABLE_ASSURANCE.md):** Provable Assurance for ORPHEUS systems — the framing behind the Auditor's claim matrix and evidence package output, with a concrete evaluation method for measuring whether the capability adds value. Based on the whitepaper *[Provable Assurance for Agentic Systems](https://github.com/schwartz1375/ArtificialDiaries/blob/main/PDFs/provable_assurance_agentic_systems_whitepaper.pdf)* (Schwartz, 2026).
+
 
 ## License
 
