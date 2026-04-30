@@ -89,6 +89,8 @@ Keeping activation explicit in Stage 1 is the conservative choice, but it means 
 
 Each of these requires edits to the meta-orchestrator `SKILL.md` and, for the Surgeon hand-off, a small change to the Surgeon's Phase 6 report. None are in Stage 1 scope. They are called out here so that the present tradeoff — explicit activation at the cost of potential staleness — is understood as a staging decision rather than a permanent constraint.
 
+**Note on Phase 8 (currently shipped) — passive cross-expert claim awareness:** The Surgeon and Doctor now mention which claims their actions affect, recommending the user run the Auditor afterward. This is a passive form of "auto-audit after Surgeon" — visibility without invasion. The full auto-audit chain remains future work; what shipped is the visibility step that makes the gap actionable for the user without the meta-orchestrator inventing work.
+
 ## Mapping the Seven Checks to Claims
 
 Each default claim keeps one-to-one correspondence with an existing check, so the change is reversible and auditable. The full catalog lives in `references/claims/default-claims.yaml`; a sketch:
