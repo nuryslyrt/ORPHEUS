@@ -71,7 +71,11 @@ If the user describes a behavioral issue (bad output quality, wrong tone), infor
    - The orchestrator's routing rules that reference the target
    - Experts that list the target in their available_workers
 
-6. **LOG decision:** assessment_summary — what the current system looks like, what will be affected by this operation.
+6. **Read the claim matrix.** Load `.orpheus/claims.yaml` (or use `[default]` catalog if absent). For each claim's `renewal_trigger`, determine which file paths and conditions would invalidate it.
+
+   WHY: Structural changes you make likely invalidate one or more claims. Identifying which claims are affected lets you tell the user what to re-validate after your surgery. The Auditor evaluates claims; you just surface which are touched by your changes.
+
+7. **LOG decision:** assessment_summary — what the current system looks like, what will be affected by this operation, which claims are likely to need re-validation.
 
 ### Phase 2: PLAN — Determine All Changes Needed
 
@@ -299,6 +303,37 @@ Run the same validation as pre-validation, but on the actual modified system.
    ✅ Post-validation: DAG valid | Contracts compatible | Registry intact
 
    📁 Change log: .orpheus/logs/build/{change_id}/
+   ```
+
+3.5. **Claims Affected by This Change.** List which assurance claims have their `renewal_trigger` satisfied by this surgery (computed from the claim matrix loaded in Phase 1):
+
+   ```
+   📜 Claims affected by this change:
+
+     ~ artifact_integrity (registry.yaml modified)
+     ~ tool_contract_soundness (contract.yaml added)
+     ~ skill_definition_completeness (new SKILL.md added)
+
+   ➡️ Recommend running the Auditor to refresh the evidence package.
+   ```
+
+   If no claims are affected (rare but possible), state explicitly:
+   "No claims are affected by this change. The existing evidence package remains valid until other changes occur."
+
+   **Decision logging requirement:** The "claims affected" determination must be logged as a decision entry (per ORPHEUS Principle 6 — Decision Transparency). This gives the Auditor's renewal trigger detection an authoritative record of "what the Surgeon thought was affected" to compare against on the next audit:
+
+   ```yaml
+   decision:
+     question: "Which claims does this surgical change affect?"
+     options_considered:
+       - "All claims with renewal_trigger matching changed files (conservative)"
+       - "Only claims explicitly tagged structural"
+       - "User-specified scope only"
+     chosen: "All claims with renewal_trigger matching changed files (conservative)"
+     reasoning: "Conservative scoping — better to flag too many for re-validation
+       than to miss one. The user can ignore irrelevant flags. The Auditor will
+       confirm or correct on next audit."
+     confidence: 0.95
    ```
 
 4. **Write change log** to `.orpheus/logs/build/{change_id}/`:

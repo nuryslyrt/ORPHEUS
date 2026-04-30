@@ -1,0 +1,48 @@
+# ORPHEUS Assurance Claims for {{SYSTEM_NAME}}
+#
+# This file declares which claim catalogs your system extends and any
+# custom claims specific to this system.
+#
+# ───────────────────────────────────────────────────────────────────────
+#
+# The `extends` array lists which built-in catalogs to merge:
+#
+#   extends: [default]            # standard 7 structural claims (recommended)
+#   extends: [default, preview]   # add forward-looking unverified claims
+#   extends: []                   # strict mode: only your custom claims
+#
+# Custom claims go in the `claims` array below. They override any default
+# or preview claim with the same id.
+#
+# Ask ORPHEUS to "explain the claim schema" or "validate my claims.yaml"
+# for help adding custom claims.
+#
+# ───────────────────────────────────────────────────────────────────────
+
+version: "1.0"
+system: "{{SYSTEM_NAME}}"
+extends: [default]
+
+claims: []
+
+# ───────────────────────────────────────────────────────────────────────
+# Example custom claim (uncomment and adapt to declare a system-specific
+# safety property — these are the most valuable claims because they
+# encode requirements unique to your system):
+# ───────────────────────────────────────────────────────────────────────
+#
+# claims:
+#   - id: writing_expert_uses_only_allowed_workers
+#     statement: >
+#       The writing-expert never delegates to a worker outside its
+#       declared compatible_workers list in registry.yaml.
+#     validation_method: policy-as-code
+#     evidence_source:
+#       - experts/writing-expert/SKILL.md
+#       - registry.yaml
+#     renewal_trigger: >
+#       writing-expert SKILL.md modified, or registry compatible_workers
+#       for writing-expert changes
+#     owner: doctor
+#     risk_tier: high
+#     tags: [authorization, custom]

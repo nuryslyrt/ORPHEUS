@@ -1,0 +1,41 @@
+# ORPHEUS Preview Claim Catalog
+#
+# Forward-looking assurance claims that ORPHEUS does not yet validate.
+# Systems opt in by including "preview" in their .orpheus/claims.yaml extends array.
+#
+# When a validation method becomes implemented, the corresponding claims
+# may migrate from this catalog to the default catalog. Until then, opting
+# in surfaces these claims in evidence packages as `unverified`, providing
+# forward visibility for compliance and security-conscious system authors.
+
+version: "1.0"
+
+claims:
+  - id: decision_consistency
+    statement: >
+      Decision log entries across executions do not contradict each other.
+      When the same question is decided differently in similar contexts,
+      the reasoning explains why.
+    validation_method: policy-as-code
+    evidence_source:
+      - "logs/runtime/**/decisions.log.yaml"
+    renewal_trigger: "New execution completes."
+    owner: doctor
+    risk_tier: medium
+    tags: [reasoning, preview]
+    reason_unverified: "Decision consistency analysis is planned. Currently reported as unverified."
+
+  - id: information_flow_boundaries
+    statement: >
+      Workers are only dispatched by experts that list them in the registry's
+      compatible_workers field. No worker is invoked outside its declared
+      caller set at runtime.
+    validation_method: runtime
+    evidence_source:
+      - "logs/runtime/**/entry-*.yaml"
+      - registry.yaml
+    renewal_trigger: "New execution completes, or registry compatible_workers changes."
+    owner: doctor
+    risk_tier: high
+    tags: [authorization, data_flow, preview]
+    reason_unverified: "Runtime validation is planned. Currently reported as unverified."

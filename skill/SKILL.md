@@ -40,7 +40,7 @@ A generated ORPHEUS system contains:
 |--------|--------|---------|------------|
 | **Builder** | Active | Creates new ORPHEUS systems from NL descriptions | `references/experts/builder.md` |
 | **Doctor** | Active | Diagnosis, debugging, and behavioral fixes | `references/experts/doctor.md` |
-| **Auditor** | Active | Health checks and system validation | `references/experts/auditor.md` |
+| **Auditor** | Active | Health checks, provable assurance claim matrix, evidence package generation | `references/experts/auditor.md` |
 | **Surgeon** | Active | Structural modifications (add/remove/restructure skills) | `references/experts/surgeon.md` |
 
 ## Available Workers (used by experts)
@@ -367,3 +367,16 @@ The complete ORPHEUS architecture is documented in the project's `DESIGN.md`. Ke
 - Section 6: Concurrency Model (parallel execution)
 - Section 8: Observability & Logging (structured logging)
 - Section 17: ORPHEUS Meta-System (this meta-system's architecture)
+
+## Provable Assurance
+
+The Auditor evaluates each system against an explicit assurance claim matrix and emits an evidence package suitable for renewable approval decisions. See:
+
+- `references/PROVABLE_ASSURANCE.md` — framing and motivation
+- `references/protocols/assurance-protocol.md` — operational protocol (matrix loading, claim evaluation, renewal triggers, evidence emission)
+- `references/schemas/claim-schema.md` — claim format and catalog `extends` semantics
+- `references/schemas/evidence-package-schema.md` — output artifact schema
+- `references/claims/default-claims.yaml` — default claim catalog (7 structural claims)
+- `references/claims/preview-claims.yaml` — opt-in preview catalog (forward-looking unverified claims)
+
+The Builder generates a stub `.orpheus/claims.yaml` for new systems. System authors add custom claims by editing that file. Surgeon and Doctor mention which claims their actions affect, recommending the user run the Auditor afterward.

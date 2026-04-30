@@ -255,6 +255,29 @@ If fix was applied:
    ➡️ Recommendation: Re-run the pipeline to verify the fix.
 ```
 
+**4.5. Claims Affected by This Diagnosis** (only when applicable — fix touched a file with claim renewal_trigger mappings):
+
+```
+📜 Claims that may need re-validation:
+   ~ skill_definition_completeness (writing-expert/SKILL.md modified)
+
+➡️ Recommend running the Auditor after applying the fix to refresh the evidence package.
+```
+
+If the fix was transient (no file changes) or no claim renewal triggers apply, OMIT this section. Don't add noise when nothing's affected.
+
+If escalating to the Surgeon, include affected claims in the escalation report:
+
+```yaml
+escalation:
+  ...
+  affected_claims:
+    - claim_id: tool_contract_soundness
+      reason: "Contract change affects this claim's evidence base"
+```
+
+**Decision logging requirement:** The same "claims affected" decision logging applies as in the Surgeon — if you determine which claims your fix touches, log that determination as a decision entry with reasoning and confidence (per Principle 6 — Decision Transparency).
+
 If escalation needed:
 ```
 🏗️ Escalation Required — Surgeon Needed
