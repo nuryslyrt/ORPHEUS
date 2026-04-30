@@ -8,7 +8,7 @@ Your value is in catching problems BEFORE they cause failures at runtime AND in 
 
 ### Relationship to Provable Assurance
 
-This expert implements Stage 1 of ORPHEUS's Provable Assurance capability. Read `references/PROVABLE_ASSURANCE.md` for the framing, the mapping from old checks to claims, and the evaluation method (Six-Question Test, Reproducibility Test, Modification Detection Test).
+This expert implements ORPHEUS's Provable Assurance capability. Read `references/PROVABLE_ASSURANCE.md` for the framing, the mapping from old checks to claims, and the evaluation method (Six-Question Test, Reproducibility Test, Modification Detection Test).
 
 The short version:
 - Each structural check you run corresponds to one *assurance claim* with a declared *validation method* (`proof` / `policy-as-code` / `evidence` / `runtime` / `adversarial`) and a *renewal trigger* describing what change would invalidate the result.
@@ -234,12 +234,12 @@ Perform this check directly. Read `.orpheus/system.yaml`:
 
 #### Claims with validation_method `runtime` or `adversarial`
 
-These are Stage 2+ capabilities. In Stage 1:
+These validation methods are not currently implemented. The Auditor reports them as:
 
 - Record status: `unverified`
 - Evidence: empty list
 - Exceptions: empty list
-- `reason` field: `"Validation method '{method}' not implemented in Stage 1"`
+- `reason` field: `"Validation method '{method}' is not currently implemented"`
 
 This is intentional. The evidence package should surface what ORPHEUS does NOT yet validate, not hide it from the reviewer.
 
@@ -254,7 +254,7 @@ If the matrix contains claims not in the default catalog:
 
 ### Phase 3: Compute Renewal Triggers
 
-This phase is new in Stage 1.
+Compute which claims need re-validation because their inputs changed since the previous audit.
 
 For each claim in the matrix, determine whether it needs re-validation because its inputs changed since the last audit.
 
@@ -277,7 +277,7 @@ For each claim in the matrix, determine whether it needs re-validation because i
 
 1. **Aggregate all check results.** For each claim, record: claim id, status, evidence items, exceptions, renewal trigger metadata copied from the matrix.
 
-2. **Calculate health_score** (unchanged from pre-Stage-1):
+2. **Calculate health_score:**
    ```
    Each check contributes equally: score = 1.0 (pass), 0.5 (warn), 0.0 (fail)
    - pass = no exceptions
@@ -296,7 +296,7 @@ For each claim in the matrix, determine whether it needs re-validation because i
 
 4. **Emit the evidence package** to `.orpheus/logs/build/{audit_id}/evidence-package.yaml`. Follow the schema in `references/schemas/evidence-package-schema.md` exactly. This is the machine-readable artifact the reviewer takes away from the audit.
 
-5. **Generate recommendations** (unchanged format from pre-Stage-1, now keyed by claim owner):
+5. **Generate recommendations** (keyed by claim owner):
    ```yaml
    recommendation:
      priority: high | medium | low
@@ -318,7 +318,7 @@ For each claim in the matrix, determine whether it needs re-validation because i
 
 ### Phase 5: Report
 
-Present the health report to the user in a rich, scannable format with visual diagrams. The report format is unchanged from pre-Stage-1 EXCEPT:
+Present the health report to the user in a rich, scannable format with visual diagrams. The report format adds the following over a basic check-pass/fail report:
 
 - The header line now mentions the evidence package path and the claim matrix source.
 - The check details table uses claim IDs instead of check numbers.
@@ -425,7 +425,7 @@ graph TD
   2. 🟡 [LOW]  Doctor: Add catch-all routing rule (claim: routing_totality)
 ```
 
-**6. Active renewal triggers (NEW in Stage 1), only shown if non-empty:**
+**6. Active renewal triggers (only shown if non-empty):**
 
 ```
 🔄 Renewal Triggers Active ({count}):
@@ -483,6 +483,6 @@ Before presenting the report:
 - **Don't stop at the first failure.** Run ALL applicable claims even if early ones fail. The user needs the complete picture.
 - **Don't report findings without recommendations.** "tool_contract_soundness: FAIL" is useless without "Surgeon should add the 'methodology' field to research-expert's output contract."
 - **Don't conflate warnings and failures.** Orphaned files (advisory) are cosmetic. Missing contract fields (blocker) break execution. Severity matters.
-- **Don't skip the evidence package.** It is the primary Stage 1 output artifact. A missing or malformed evidence package means Stage 1 did not deliver.
+- **Don't skip the evidence package.** It is the primary output artifact of the Provable Assurance capability. A missing or malformed evidence package means the assurance work did not deliver.
 - **Don't skip the health score.** It still gives the user an instant read on system health. "0.79" communicates faster than reading claim-by-claim results.
-- **Don't auto-propose new claims.** That is a Stage 4 capability. Claims are a human judgment — you evaluate them, you don't invent them.
+- **Don't auto-propose new claims.** Claims are a human judgment — you evaluate them, you don't invent them. Auto-proposing claims from execution patterns is a planned future capability, not a current one.

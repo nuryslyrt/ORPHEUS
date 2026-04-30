@@ -1,6 +1,6 @@
 # Evidence Package Schema
 
-The Evidence Package is the Auditor's output artifact for Stage 1 of Provable Assurance. It maps every claim in the matrix to the concrete evidence that currently supports it, records any open exceptions, and identifies which claims need re-validation because their inputs changed.
+The Evidence Package is the Auditor's output artifact for the Provable Assurance capability. It maps every claim in the matrix to the concrete evidence that currently supports it, records any open exceptions, and identifies which claims need re-validation because their inputs changed.
 
 An evidence package is written to `.orpheus/logs/build/{audit_id}/evidence-package.yaml` after every audit. One file per audit run; audits are never mutated retroactively.
 
@@ -15,10 +15,10 @@ An evidence package is written to `.orpheus/logs/build/{audit_id}/evidence-packa
 | `claim_matrix_source` | object | Yes | Records exactly which catalogs were merged and whether a system override was applied (see below) |
 | `claim_matrix_version` | string | Yes | `version` field from the evaluated claim matrix |
 | `overall_status` | enum | Yes | `healthy` \| `warnings` \| `degraded` \| `broken` |
-| `health_score` | number | Yes | 0.0 to 1.0 (same calculation as pre-Stage-1 Auditor) |
+| `health_score` | number | Yes | 0.0 to 1.0 (average of per-check scores where pass=1.0, warn=0.5, fail=0.0) |
 | `claims` | array | Yes | One entry per claim evaluated (see below) |
 | `renewal_triggers_active` | array | Yes | Claims currently requiring re-validation because their inputs changed since last audit (see below). May be empty. |
-| `recommendations` | array | Yes | Actionable items from the Auditor, unchanged from pre-Stage-1 format |
+| `recommendations` | array | Yes | Actionable items from the Auditor: priority, target_expert (doctor/surgeon), action, claim id |
 
 ## claim_matrix_source Sub-Fields
 
@@ -72,7 +72,7 @@ The strength hierarchy — the Auditor is **never allowed to label up**.
 | `proven` | Claim has `validation_method=proof` AND the proof procedure returned positive |
 | `checked` | Claim has `validation_method=policy-as-code` AND all rules passed |
 | `attested` | Claim has `validation_method=evidence` AND all evidence items were well-formed |
-| `unverified` | The validator could not run, the method is not implemented in this stage, or evaluation was skipped. **NOT the same as failure** — failure is represented by `exceptions` and is reflected in `overall_status`. |
+| `unverified` | The validator could not run, the method is not currently implemented, or evaluation was skipped. **NOT the same as failure** — failure is represented by `exceptions` and is reflected in `overall_status`. |
 
 A claim whose checker ran but returned failures carries the status corresponding to its method (`proven`/`checked`/`attested`) with a populated `exceptions` array. `unverified` is reserved for inability-to-evaluate.
 
@@ -173,7 +173,7 @@ claims:
     renewal_trigger: "Any registry change affecting available_workers"
     owner: doctor
     risk_tier: medium
-    reason: "Validation method 'runtime' is not implemented in Stage 1. Claim reserved for Stage 2+."
+    reason: "Validation method 'runtime' is not currently implemented."
 
 renewal_triggers_active:
   - claim_id: skill_definition_completeness
@@ -204,9 +204,9 @@ An evidence package is **reproducible** for a given system state. If the system 
 3. Similarly, `policy-as-code` MUST be `checked` or `unverified`; `evidence` MUST be `attested` or `unverified`
 4. `status=unverified` MUST include a `reason` field
 5. `overall_status` derives from the exception set: `healthy` (no exceptions), `warnings` (advisory/warning only), `degraded` (1-2 blocker exceptions), `broken` (3+ blocker exceptions or any unverified critical claim)
-6. `health_score` uses the pre-Stage-1 formula: average of per-check scores where pass=1.0, warn=0.5, fail=0.0
+6. `health_score` formula: average of per-check scores where pass=1.0, warn=0.5, fail=0.0; `unverified` claims are excluded from the denominator
 
-## Stage 1 Limitations (documented)
+## Current Limitations
 
-- `information_flow_boundaries` and similar runtime claims are reserved as `unverified` placeholders to make Stage 2 scope visible in Stage 1 output. This is intentional — the evidence package should tell the reviewer what is *not* yet validated, not hide it.
-- Hash-based evidence uses sha256 of the file's on-disk content at `captured_at` time. Canonical form normalization (e.g., YAML re-serialization) is not performed in Stage 1. Whitespace-only edits to source files will therefore trigger renewal, which is the safe default.
+- Runtime and adversarial validation methods are not yet implemented. Claims declaring these methods are reported as `unverified`. Systems can opt into the `preview` catalog (`extends: [default, preview]`) to surface these as known unverified claims in evidence packages.
+- Hash-based evidence uses sha256 of the file's on-disk content at capture time. Canonical form normalization (e.g., YAML re-serialization) is not performed. Whitespace-only edits to source files therefore trigger renewal, which is the safe default.

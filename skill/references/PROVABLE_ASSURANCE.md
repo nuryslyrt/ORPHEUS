@@ -2,9 +2,9 @@
 
 ## What This Is
 
-ORPHEUS systems are agentic: they decompose user intent into jobs, dispatch work to experts, invoke tools through workers, and modify state on behalf of the user. The paper *Provable Assurance for Agentic Systems* (Schwartz, 2026) argues that for systems like this the central trust question is no longer "does the code compile" — it is "can we continuously prove the system is behaving within approved bounds, with evidence?"
+ORPHEUS systems are agentic: they decompose user intent into jobs, dispatch work to experts, invoke tools through workers, and modify state on behalf of the user. The trust question for systems like this is not "does the code compile" — it is "can we continuously prove the system is behaving within approved bounds, with evidence?" This concern is well-developed in the agentic safety literature; the framework presented here aligns with the approach described in Schwartz (2026), *Provable Assurance for Agentic Systems*, while standing on its own merits.
 
-Stage 1 of the Provable Assurance capability reframes the **Auditor** around that question. It does not add a new skill, a new runtime, or new dependencies. It adds a vocabulary, an input file, and an output artifact:
+The Provable Assurance capability reframes the **Auditor** around that question. It does not add a new skill, a new runtime, or new dependencies. It adds a vocabulary, an input file, and an output artifact:
 
 - **Vocabulary:** the seven existing structural checks are promoted to named *assurance claims*, each with an explicit validation method, evidence source, and renewal trigger.
 - **Input:** an optional `.orpheus/claims.yaml` lets a system author declare custom claims. If absent, the Auditor uses a default claim catalog shipped with the skill.
@@ -39,6 +39,16 @@ The pre-Stage-1 Auditor produces a 0–1 score and seven check results. It answe
 
 The whitepaper is blunt: "Point-in-time approval is a fiction for systems whose models, tools, dependencies, policies, and operating context change continuously." An ORPHEUS system whose registry changed after the last audit is in exactly that situation, and nothing in the current Auditor tells the user *which claims those changes invalidated*. Stage 1 makes the trigger explicit per claim, so the Auditor can report "authorization_boundaries needs re-validation: `experts/writing-expert/SKILL.md` modified after last audit."
 
+## On Staging
+
+This document organizes future capabilities into numbered "stages" — Stage 1 (currently shipped), Stage 2, Stage 3, Stage 4. The numbering is conceptual, not committed:
+
+- Stages group related capabilities that share design assumptions or implementation infrastructure (for example, runtime and adversarial validation share the need for live execution under instrumented conditions).
+- Stage numbering does NOT imply a release sequence. ORPHEUS may ship Stage 3 capabilities before Stage 2 if user demand favors them. Stages may merge, split, be deprecated, or have new ones discovered as the framework evolves.
+- "Stage 1" describes what shipped. Other stages describe possibilities, not promises.
+
+Operational documentation (the Auditor's instructions, schema references, error messages, the default claim catalog) deliberately avoids stage numbering. Those documents reflect current state and known capabilities, not roadmap.
+
 ## What Changes in the Auditor
 
 | Before Stage 1 | After Stage 1 |
@@ -67,7 +77,9 @@ The consequence is that running Builder, Runner, Doctor, or Surgeon alone produc
 | **Doctor** | "why did X fail", "debug", "fix the error" | No | Doctor reads logs to diagnose specific failures. No claim evaluation. |
 | **Surgeon** | "add an expert", "restructure", "split job" | No | Surgeon mutates structure. Stage 1 does not auto-audit after surgery — the user triggers the Auditor explicitly. |
 
-### Stage 2+ Roadmap for Reducing Friction
+### Future Work: Reducing Friction
+
+Per the staging note above, the following are conceptual groupings, not committed deliverables in sequence.
 
 Keeping activation explicit in Stage 1 is the conservative choice, but it means evidence packages drift out of date as the user operates through other routes. Stage 2 and beyond can close that gap without violating the renewable-approval principle, because each of the following still preserves the "material change triggers assurance work" contract — they just remove the need for the user to type the word "audit":
 
