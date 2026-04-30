@@ -370,4 +370,13 @@ The complete ORPHEUS architecture is documented in the project's `DESIGN.md`. Ke
 
 ## Provable Assurance
 
-The Auditor evaluates each system against an explicit assurance claim matrix and emits an evidence package suitable for renewable approval decisions. See `references/PROVABLE_ASSURANCE.md` for the framing, `references/schemas/claim-schema.md` for the claim format, `references/schemas/evidence-package-schema.md` for the output artifact, and `references/claims/default-claims.yaml` for the default claim catalog.
+The Auditor evaluates each system against an explicit assurance claim matrix and emits an evidence package suitable for renewable approval decisions. See:
+
+- `references/PROVABLE_ASSURANCE.md` — framing and motivation
+- `references/protocols/assurance-protocol.md` — operational protocol (matrix loading, claim evaluation, renewal triggers, evidence emission)
+- `references/schemas/claim-schema.md` — claim format and catalog `extends` semantics
+- `references/schemas/evidence-package-schema.md` — output artifact schema
+- `references/claims/default-claims.yaml` — default claim catalog (7 structural claims)
+- `references/claims/preview-claims.yaml` — opt-in preview catalog (forward-looking unverified claims)
+
+The Builder generates a stub `.orpheus/claims.yaml` for new systems. System authors add custom claims by editing that file. Surgeon and Doctor mention which claims their actions affect, recommending the user run the Auditor afterward.
