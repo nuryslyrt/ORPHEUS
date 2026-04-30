@@ -121,7 +121,7 @@ Run applicable checks. **Dispatch workers in PARALLEL** where possible — `arti
 
 Each check corresponds to exactly one claim. Run the check, then record the result in claim terms (not just check terms).
 
-#### Claim: artifact_integrity (was Check 1: Registry Integrity)
+#### Claim: artifact_integrity
 
 **Dispatch registry-updater** with operation="scan".
 
@@ -137,7 +137,7 @@ Additionally verify yourself:
 - Status: `attested` if all entries valid; retain status but add exceptions for orphans/missing files
 - Exception severities: orphaned files = `advisory`; missing files = `blocker`
 
-#### Claim: tool_contract_soundness (was Check 2: Contract Compatibility)
+#### Claim: tool_contract_soundness
 
 **Dispatch contract-compat-checker** with scope="full".
 
@@ -146,7 +146,7 @@ Additionally verify yourself:
 - Status: `checked` (validation method is `policy-as-code`)
 - Exceptions: unused output fields → `advisory`; missing required fields or type mismatches → `blocker`
 
-#### Claim: workflow_termination (was Check 3: DAG Validity)
+#### Claim: workflow_termination
 
 **Dispatch dag-validator** with the system path.
 
@@ -155,7 +155,7 @@ Additionally verify yourself:
 - Status: `proven` — this is the ONE claim that earns the `proof` label because DAG acyclicity is mathematically decidable
 - Exceptions: orphaned jobs → `warning`; cycles or dangling references → `blocker`
 
-#### Claim: skill_definition_completeness (was Check 4: Skill Quality)
+#### Claim: skill_definition_completeness
 
 Perform this check directly (no worker needed). For each SKILL.md in the system:
 
@@ -174,7 +174,7 @@ Perform this check directly (no worker needed). For each SKILL.md in the system:
 - Status: `checked` (`policy-as-code` — mechanical rule applied to file contents)
 - Exceptions: missing non-critical section (e.g., Anti-Patterns) → `advisory`; missing critical section (no Execution Protocol) → `blocker`; line count warning → `warning`
 
-#### Claim: routing_totality (was Check 5: Orchestrator Coverage)
+#### Claim: routing_totality
 
 Perform this check directly. Read the orchestrator SKILL.md:
 
@@ -189,7 +189,7 @@ Perform this check directly. Read the orchestrator SKILL.md:
 - Status: `checked`
 - Exceptions: missing catch-all → `warning`; experts with no routing rule → `blocker`
 
-#### Claim: observability_integrity (was Check 6: Log Health)
+#### Claim: observability_integrity
 
 **Dispatch log-analyzer** with operation="health_check".
 
@@ -203,7 +203,7 @@ Additionally verify:
 - Status: `attested` (method is `evidence`)
 - Exceptions: executions missing assembled views → `warning`; missing or corrupt log structure → `blocker`
 
-#### Claim: configuration_validity (was Check 7: Configuration Validity)
+#### Claim: configuration_validity
 
 Perform this check directly. Read `.orpheus/system.yaml`:
 
