@@ -1,17 +1,14 @@
 # ORPHEUS Default Assurance Claim Catalog
 #
-# This is the baseline claim matrix the Auditor uses when a system has no
-# .orpheus/claims.yaml override. Each claim corresponds to one of the seven
-# structural checks that existed before Stage 1 of Provable Assurance, now
-# framed with explicit validation methods, evidence sources, renewal triggers,
-# owners, and risk tiers.
+# The seven structural claims the Auditor evaluates by default.
+# Each claim has a validation method, evidence sources, renewal trigger,
+# owner, and risk tier.
 #
-# System authors can override or extend this catalog by creating
-# .orpheus/claims.yaml. See references/schemas/claim-schema.md for the merge
-# semantics.
+# System authors can extend this catalog by setting `extends` in
+# .orpheus/claims.yaml. See references/schemas/claim-schema.md for the
+# extension semantics.
 
 version: "1.0"
-extends_default: false   # This IS the default — it does not extend anything.
 
 claims:
   # ---------------------------------------------------------------------------
@@ -179,46 +176,3 @@ claims:
     risk_tier: medium
     tags: [configuration, self_containment]
     # No worker — Auditor reads system.yaml and checks scripts/ directly
-
-  # ---------------------------------------------------------------------------
-  # Stage 2+ placeholder claims
-  # ---------------------------------------------------------------------------
-  # These are intentionally declared with unimplemented validation methods so
-  # that Stage 1 evidence packages surface them as `unverified`. This makes
-  # the Stage 2+ roadmap visible in every audit report rather than hidden in
-  # documentation. A reviewer reading the evidence package can see exactly
-  # what ORPHEUS does not yet validate.
-  #
-  # These claims can be removed from the default catalog if a system author
-  # finds them distracting — override with `extends_default: false` and omit
-  # them.
-  # ---------------------------------------------------------------------------
-
-  - id: decision_consistency
-    statement: >
-      Decision log entries across executions do not contradict each other.
-      When the same question is decided differently in similar contexts,
-      the reasoning explains why.
-    validation_method: policy-as-code
-    evidence_source:
-      - "logs/runtime/**/decisions.log.yaml"
-    renewal_trigger: "New execution completes."
-    owner: doctor
-    risk_tier: medium
-    tags: [reasoning, stage2_preview]
-    # Stage 1: reports as unverified with reason "Stage 2 capability"
-
-  - id: information_flow_boundaries
-    statement: >
-      Workers are only dispatched by experts that list them in the registry's
-      compatible_workers field. No worker is invoked outside its declared
-      caller set at runtime.
-    validation_method: runtime
-    evidence_source:
-      - "logs/runtime/**/entry-*.yaml"
-      - registry.yaml
-    renewal_trigger: "New execution completes, or registry compatible_workers changes."
-    owner: doctor
-    risk_tier: high
-    tags: [authorization, data_flow, stage2_preview]
-    # Stage 1: reports as unverified with reason "runtime validation not implemented"

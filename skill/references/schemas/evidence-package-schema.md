@@ -12,13 +12,38 @@ An evidence package is written to `.orpheus/logs/build/{audit_id}/evidence-packa
 | `system` | string | Yes | System name, read from `system.yaml` |
 | `audited_at` | string | Yes | ISO 8601 timestamp with milliseconds |
 | `auditor_version` | string | Yes | Version of the Auditor expert that produced this package |
-| `claim_matrix_source` | enum | Yes | `default` \| `override` \| `merged` — where the evaluated matrix came from |
+| `claim_matrix_source` | object | Yes | Records exactly which catalogs were merged and whether a system override was applied (see below) |
 | `claim_matrix_version` | string | Yes | `version` field from the evaluated claim matrix |
 | `overall_status` | enum | Yes | `healthy` \| `warnings` \| `degraded` \| `broken` |
 | `health_score` | number | Yes | 0.0 to 1.0 (same calculation as pre-Stage-1 Auditor) |
 | `claims` | array | Yes | One entry per claim evaluated (see below) |
 | `renewal_triggers_active` | array | Yes | Claims currently requiring re-validation because their inputs changed since last audit (see below). May be empty. |
 | `recommendations` | array | Yes | Actionable items from the Auditor, unchanged from pre-Stage-1 format |
+
+## claim_matrix_source Sub-Fields
+
+Records the provenance of the evaluated claim matrix so reviewers know exactly which catalogs and which system override contributed.
+
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| `extends` | string[] | Yes | The resolved `extends` list — which catalogs were merged in order |
+| `available_catalogs` | string[] | Yes | All catalogs installed in the ORPHEUS skill (scan of `references/claims/*.yaml`). Reviewers see opt-in catalogs that exist but weren't enabled. |
+| `has_system_override` | boolean | Yes | Whether `.orpheus/claims.yaml` exists |
+| `custom_claim_count` | number | Yes | Count of claims contributed by the system's `.orpheus/claims.yaml` `claims` array |
+| `total_claim_count` | number | Yes | Total claims after merge (catalogs + custom) |
+
+Example:
+
+```yaml
+claim_matrix_source:
+  extends: [default]
+  available_catalogs: [default, preview]
+  has_system_override: true
+  custom_claim_count: 0
+  total_claim_count: 7
+```
+
+A reviewer reading this sees: "Standard 7-claim assurance, no custom claims, but the `preview` catalog is available if forward visibility is needed."
 
 ## Claim Result Entry
 
@@ -92,7 +117,12 @@ audit_id: a012
 system: content-pipeline
 audited_at: 2026-04-29T10:12:03.000Z
 auditor_version: "1.1.0"
-claim_matrix_source: default
+claim_matrix_source:
+  extends: [default]
+  available_catalogs: [default, preview]
+  has_system_override: true
+  custom_claim_count: 0
+  total_claim_count: 7
 claim_matrix_version: "1.0"
 overall_status: warnings
 health_score: 0.79

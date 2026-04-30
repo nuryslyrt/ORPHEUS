@@ -18,7 +18,7 @@ The short version:
 ## Scope Boundary
 
 **You handle:**
-- Loading the assurance claim matrix (default catalog or system override)
+- Loading the assurance claim matrix (catalogs declared via `extends` array; system override via `.orpheus/claims.yaml`)
 - Registry integrity checks (all skills exist on disk, no orphans) → claim `artifact_integrity`
 - Contract compatibility validation → claim `tool_contract_soundness`
 - DAG validity checks → claim `workflow_termination` (the one `proof`-level claim)
@@ -73,27 +73,38 @@ For each finding, you recommend which expert should fix it (Doctor for behaviora
 
 ### Phase 0: Load the Assurance Claim Matrix
 
-This phase is new in Stage 1. Do it before anything else.
+Load and validate the claim matrix before any evaluation. See `references/protocols/assurance-protocol.md` for the detailed procedure including edge cases and error message format.
 
 1. **Generate an audit ID** using the local copy of the ID generator:
    ```bash
    python3 .orpheus/scripts/generate-id.py a --base-path .orpheus
    ```
 
-2. **Determine the claim matrix source:**
-   - Check whether `.orpheus/claims.yaml` exists.
-   - **If it exists:** read it. Read its `extends_default` field.
-     - If `extends_default: true` (default), merge with the default catalog from the ORPHEUS skill install (`references/claims/default-claims.yaml`). Per-claim replacement by `id` — see `references/schemas/claim-schema.md` merge semantics.
-     - If `extends_default: false`, use only the system's override.
-   - **If it does NOT exist:** use the default catalog unchanged. Record `claim_matrix_source = "default"`.
+2. **Determine the system's `extends` configuration:**
+   - If `.orpheus/claims.yaml` exists, read its `extends` field. Default to `[default]` if the field is absent.
+   - If `.orpheus/claims.yaml` does NOT exist, use `extends: [default]`.
+   - If `.orpheus/claims.yaml` exists with `extends: []`, the system uses only its own custom claims (strict mode).
 
-3. **Validate the merged matrix:**
+3. **Scan available catalogs.** List `references/claims/*.yaml` files in the ORPHEUS skill install. Each file's basename (without `.yaml`) is a catalog name. Record this list as `available_catalogs` for the evidence package.
+
+4. **For each catalog name in the system's `extends` array, in order:**
+   - Read `{orpheus_skill_path}/references/claims/{name}.yaml`
+   - If the file does not exist, ABORT with: "Catalog `{name}` not found in references/claims/. Known catalogs: `{list of available_catalogs}`."
+   - Append all claims from the catalog. Later catalogs override earlier claims with the same `id`.
+
+5. **Append the system's custom `claims` array last.** These have highest precedence — they override any default or preview claim with the same `id`.
+
+6. **Validate the merged matrix:**
    - Every claim has required fields (`id`, `statement`, `validation_method`, `evidence_source`, `renewal_trigger`, `owner`, `risk_tier`)
    - Every `id` is unique after merge
    - `validation_method` is one of the five enum values
-   - If validation fails, report an error and stop. The matrix itself is an assurance input; a malformed matrix invalidates the audit.
+   - On validation failure, produce a structured error message including: file path, line number when YAML parser reports it, specific issue, required values, suggestion. Then abort. The matrix is an assurance input; a malformed matrix invalidates the audit.
 
-4. **LOG:** claim_matrix_loaded — source (default/override/merged), total claim count, how many fall in each risk tier, how many use each validation method.
+7. **Edge cases:**
+   - `extends: []` AND `claims: []` → Empty matrix. Produce a report stating "No claims defined; no validation performed." Evidence package contains `claim_matrix_source.total_claim_count: 0`. Auditor does not crash; treats empty matrix as a valid system author choice.
+   - Claim's `evidence_source` references a non-existent file → Status: `unverified`; reason: "Evidence source 'path/to/file' not found on disk." Recommendation: "Update the claim's evidence_source or remove the claim if it no longer applies."
+
+8. **LOG:** matrix_loaded — record which catalogs were merged (`extends` value), `available_catalogs` scan result, `has_system_override`, custom claim count, total claim count, which (if any) catalogs were unknown.
 
 ### Phase 1: Scope Determination
 
