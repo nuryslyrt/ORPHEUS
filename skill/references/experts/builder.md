@@ -130,7 +130,13 @@ Analysis:
    - Routing rules mapping job patterns to experts
    - Default logging configuration
 
-8. **LOG all generation actions** (files created, workers dispatched).
+8. **Generate the assurance claim matrix stub.** Read `{orpheus_skill_path}/templates/claims.yaml.tmpl`, fill the `{{SYSTEM_NAME}}` placeholder, write to `.orpheus/claims.yaml`.
+
+   WHY: The custom claim infrastructure should work end-to-end from day 1. Generating a stub by default lets the system author add custom claims by editing the file rather than creating it from scratch. The stub's comments document the schema in place — system authors don't need to read separate documentation to add their first custom claim.
+
+   The default `extends: [default]` value gives every new system the standard 7 structural claims. System authors who want forward visibility can change to `extends: [default, preview]`.
+
+9. **LOG all generation actions** (files created, workers dispatched, including `.orpheus/claims.yaml`).
 
 ### Phase 3: Validation — Verify the System is Sound
 
@@ -235,6 +241,15 @@ Analysis:
    - The dependency flow diagram (Mermaid)
    - The directory tree of created files
    - Validation status: `✅ DAG valid | ✅ Contracts compatible | ✅ Registry intact`
+   - Assurance status:
+     ```
+     📜 Assurance: extends [default] (7 structural claims)
+        Custom claims: 0
+        Run `Validate my system` to generate the first evidence package.
+
+        To add system-specific safety claims, edit .orpheus/claims.yaml.
+        To opt into forward-looking claims, change extends to [default, preview].
+     ```
 
 5. **Write build log** to `.orpheus/logs/build/{build_id}/`:
    - `build.log.yaml`: master build log with phases, artifacts
@@ -256,6 +271,7 @@ Before presenting the system to the user, verify:
 - [ ] DAG validation passed (no cycles, no dangling refs)
 - [ ] Contract compatibility check passed (all chains valid)
 - [ ] Every expert has at least one routing rule in the orchestrator
+- [ ] `.orpheus/claims.yaml` exists with `version`, `system` name, and `extends: [default]`
 - [ ] Build log is written
 
 ## Error Handling
