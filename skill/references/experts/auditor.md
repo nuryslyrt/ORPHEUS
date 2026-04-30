@@ -232,6 +232,49 @@ graph LR
 
 Adapt the diagram to show only the claims actually evaluated (based on scope). Claims with status `unverified` should be shown in gray with an ⬜ prefix.
 
+**2.5. Claim Coverage Map** — visualizes which claims cover which layers of the system architecture. Reviewers see at a glance whether every layer is covered by at least one claim. Gaps appear as nodes without claim arrows.
+
+~~~
+```mermaid
+graph TB
+    subgraph "🎭 Orchestration Layer"
+        ORCH[orchestrator]
+    end
+    subgraph "🧠 Expert Layer"
+        E1[expert A]
+        E2[expert B]
+    end
+    subgraph "⚙️ Worker Layer"
+        W1[worker X]
+        W2[worker Y]
+    end
+    subgraph "📁 System Artifacts"
+        REG[registry.yaml]
+        CFG[system.yaml]
+        LOG[logs/]
+    end
+
+    ORCH -.->|workflow_termination| C1[✅ proven]
+    ORCH -.->|routing_totality| C2[✅ checked]
+    E1 -.->|skill_definition_completeness| C3[✅ checked]
+    E2 -.->|skill_definition_completeness| C3
+    W1 -.->|tool_contract_soundness| C4[✅ checked]
+    W2 -.->|tool_contract_soundness| C4
+    REG -.->|artifact_integrity| C5[✅ attested]
+    CFG -.->|configuration_validity| C6[✅ attested]
+    LOG -.->|observability_integrity| C7[✅ attested]
+
+    classDef layer fill:#1e293b,stroke:#334155,color:#fff
+    classDef claim fill:#22c55e,stroke:#16a34a,color:#fff,font-weight:bold
+    class ORCH,E1,E2,W1,W2,REG,CFG,LOG layer
+    class C1,C2,C3,C4,C5,C6,C7 claim
+```
+~~~
+
+If the system has more than 20 total skills, generate a layer-summary diagram instead — show each layer as a single node labeled with claim coverage count (e.g., `🧠 Expert Layer (8 experts, all covered by skill_definition_completeness)`). This keeps the visualization useful at scale.
+
+**Accessibility note:** Color is a redundant signal in these diagrams; the icon prefixes (✅/⚠️/❌/⬜) and status text labels are the primary indicators. This ensures reviewers with color vision deficiencies can read the diagrams without losing information.
+
 **3. Claim details table:**
 
 ```
@@ -304,6 +347,24 @@ graph TD
     → recommended action: re-run audit
 ```
 
+**6.5. Renewal Trigger Map** (only rendered when `renewal_triggers_active` is non-empty) — shows visually which files changed and which claims they invalidated. The arrow labels make causality explicit.
+
+~~~
+```mermaid
+graph LR
+    F1["📝 experts/writing-expert/<br/>SKILL.md"]:::changed
+    F2["📝 experts/research-expert/<br/>contract.yaml"]:::changed
+
+    F1 -->|modified after audit| C4["⚠️ skill_definition_completeness<br/>NEEDS RE-VALIDATION"]:::stale
+    F2 -->|modified after audit| C2["⚠️ tool_contract_soundness<br/>NEEDS RE-VALIDATION"]:::stale
+
+    classDef changed fill:#f59e0b,stroke:#d97706,color:#fff
+    classDef stale fill:#ef4444,stroke:#dc2626,color:#fff
+```
+~~~
+
+**Performance note:** The Mermaid diagrams add no runtime cost beyond text generation. The Auditor outputs Mermaid as text in the report; no external rendering required. For systems with > 20 skills, the Coverage Map fallback (layer summary) keeps generation cost bounded — counts replace per-skill arrows.
+
 **7. If the system is fully healthy**, show a clean summary:
 
 ```
@@ -334,6 +395,8 @@ Before presenting the report:
 - [ ] Failed claims show `❌ failed` regardless of validation method; the method column carries the strength context
 - [ ] Every `unverified` claim has a populated `reason` field
 - [ ] Renewal triggers were computed (empty is fine, but the computation must have happened)
+- [ ] Claim Coverage Map rendered (every system layer has a claim arrow OR a 'no claim coverage' label)
+- [ ] Renewal Trigger Map rendered when renewal_triggers_active is non-empty
 - [ ] Audit log entry written with full results
 
 ## Error Handling
