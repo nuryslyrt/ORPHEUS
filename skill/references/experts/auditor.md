@@ -351,22 +351,37 @@ graph LR
 
 Adapt the diagram to show only the claims actually evaluated (based on scope). Claims with status `unverified` should be shown in gray with an ⬜ prefix.
 
-**3. Claim details table (replaces the check number table):**
+**3. Claim details table:**
 
 ```
-| Claim                            | Method           | Status      | Result                                    |
-|----------------------------------|------------------|-------------|-------------------------------------------|
-| artifact_integrity               | evidence         | ✅ attested | 8 skills, all present, no orphans         |
-| tool_contract_soundness          | policy-as-code   | ✅ checked  | All chains valid                          |
-| workflow_termination             | proof            | ❌ proven   | Cycle detected: write → review → write    |
-| skill_definition_completeness    | policy-as-code   | ✅ checked  | All required sections present             |
-| routing_totality                 | policy-as-code   | ⚠️ checked  | Missing catch-all routing rule            |
-| observability_integrity          | evidence         | ✅ attested | Last 3 executions have complete logs      |
-| configuration_validity           | evidence         | ✅ attested | All config values valid                   |
-| information_flow_boundaries      | runtime          | ⬜ unverified | Stage 2 capability                      |
+| Status         | Claim                       | Method         | Detail                              |
+|----------------|----------------------------|----------------|-------------------------------------|
+| ✅ attested    | artifact_integrity         | evidence       | 8 skills, all present, no orphans   |
+| ✅ checked     | tool_contract_soundness    | policy-as-code | All chains valid                    |
+| ❌ failed      | workflow_termination       | proof          | Cycle detected: write → review → write |
+| ✅ checked     | skill_definition_completeness | policy-as-code | All required sections present       |
+| ⚠️ checked     | routing_totality           | policy-as-code | Missing catch-all routing rule      |
+| ✅ attested    | observability_integrity    | evidence       | Last 3 executions have complete logs |
+| ✅ attested    | configuration_validity     | evidence       | All config values valid             |
+| ⬜ unverified  | information_flow_boundaries | runtime        | Not currently implemented           |
 ```
 
-Note: `proven` here is the claim's *validation method tag* — the ❌ indicates blocker exception count. A `proven`-method claim with failures still shows as failed, just under a stronger assurance label.
+The Status column composition follows deterministic rules:
+
+| Method | Outcome | Status display |
+|---|---|---|
+| `proof` | passed | `✅ proven` |
+| `proof` | failed | `❌ failed` |
+| `policy-as-code` | passed | `✅ checked` |
+| `policy-as-code` | warned | `⚠️ checked` |
+| `policy-as-code` | failed | `❌ failed` |
+| `evidence` | passed | `✅ attested` |
+| `evidence` | warned | `⚠️ attested` |
+| `evidence` | failed | `❌ failed` |
+| any | not implemented | `⬜ unverified` |
+| any | skipped | `⬜ skipped` |
+
+The strength label (proven/checked/attested) only appears with positive or warning outcomes. Failures collapse to `❌ failed` — there is no informational value in distinguishing "proof failed" from "evidence failed" in the status column; the Method column already conveys what was attempted. This avoids semantic contradictions like `❌ proven` that the original column structure produced.
 
 **4. If any checks failed or warned, generate a System Architecture Diagram** highlighting the problem areas:
 
@@ -433,6 +448,9 @@ Before presenting the report:
 - [ ] Evidence package conforms to `references/schemas/evidence-package-schema.md`
 - [ ] No claim with `validation_method=evidence` carries status `proven` (no labeling up)
 - [ ] No claim with `validation_method=policy-as-code` carries status `proven` or `attested` (no labeling up)
+- [ ] Display table separates outcome (✅/⚠️/❌/⬜) from validation method
+- [ ] No table row reads as a contradiction (`❌ proven`, `✅ failed`, etc.)
+- [ ] Failed claims show `❌ failed` regardless of validation method; the method column carries the strength context
 - [ ] Every `unverified` claim has a populated `reason` field
 - [ ] Renewal triggers were computed (empty is fine, but the computation must have happened)
 - [ ] Audit log entry written with full results
