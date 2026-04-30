@@ -73,38 +73,18 @@ For each finding, you recommend which expert should fix it (Doctor for behaviora
 
 ### Phase 0: Load the Assurance Claim Matrix
 
-Load and validate the claim matrix before any evaluation. See `references/protocols/assurance-protocol.md` for the detailed procedure including edge cases and error message format.
+Load and validate the claim matrix before any evaluation.
 
-1. **Generate an audit ID** using the local copy of the ID generator:
-   ```bash
-   python3 .orpheus/scripts/generate-id.py a --base-path .orpheus
-   ```
+See `references/protocols/assurance-protocol.md` for the detailed procedure including edge cases (empty extends, unknown catalogs, missing evidence files) and the validation error message format.
 
-2. **Determine the system's `extends` configuration:**
-   - If `.orpheus/claims.yaml` exists, read its `extends` field. Default to `[default]` if the field is absent.
-   - If `.orpheus/claims.yaml` does NOT exist, use `extends: [default]`.
-   - If `.orpheus/claims.yaml` exists with `extends: []`, the system uses only its own custom claims (strict mode).
+Quick reference:
 
-3. **Scan available catalogs.** List `references/claims/*.yaml` files in the ORPHEUS skill install. Each file's basename (without `.yaml`) is a catalog name. Record this list as `available_catalogs` for the evidence package.
-
-4. **For each catalog name in the system's `extends` array, in order:**
-   - Read `{orpheus_skill_path}/references/claims/{name}.yaml`
-   - If the file does not exist, ABORT with: "Catalog `{name}` not found in references/claims/. Known catalogs: `{list of available_catalogs}`."
-   - Append all claims from the catalog. Later catalogs override earlier claims with the same `id`.
-
-5. **Append the system's custom `claims` array last.** These have highest precedence — they override any default or preview claim with the same `id`.
-
-6. **Validate the merged matrix:**
-   - Every claim has required fields (`id`, `statement`, `validation_method`, `evidence_source`, `renewal_trigger`, `owner`, `risk_tier`)
-   - Every `id` is unique after merge
-   - `validation_method` is one of the five enum values
-   - On validation failure, produce a structured error message including: file path, line number when YAML parser reports it, specific issue, required values, suggestion. Then abort. The matrix is an assurance input; a malformed matrix invalidates the audit.
-
-7. **Edge cases:**
-   - `extends: []` AND `claims: []` → Empty matrix. Produce a report stating "No claims defined; no validation performed." Evidence package contains `claim_matrix_source.total_claim_count: 0`. Auditor does not crash; treats empty matrix as a valid system author choice.
-   - Claim's `evidence_source` references a non-existent file → Status: `unverified`; reason: "Evidence source 'path/to/file' not found on disk." Recommendation: "Update the claim's evidence_source or remove the claim if it no longer applies."
-
-8. **LOG:** matrix_loaded — record which catalogs were merged (`extends` value), `available_catalogs` scan result, `has_system_override`, custom claim count, total claim count, which (if any) catalogs were unknown.
+1. Generate audit ID: `python3 .orpheus/scripts/generate-id.py a --base-path .orpheus`
+2. Read `.orpheus/claims.yaml` if present; use `extends: [default]` if absent
+3. Scan `references/claims/*.yaml` for available catalogs
+4. Load catalogs in `extends` order; append system's custom `claims` last
+5. Validate merged matrix; abort with structured error if invalid
+6. LOG: `matrix_loaded` with provenance metadata
 
 ### Phase 1: Scope Determination
 
@@ -130,148 +110,38 @@ Load and validate the claim matrix before any evaluation. See `references/protoc
 
 Run applicable checks. **Dispatch workers in PARALLEL** where possible — `artifact_integrity`, `tool_contract_soundness`, and `workflow_termination` are independent and can run simultaneously.
 
-Each check corresponds to exactly one claim. Run the check, then record the result in claim terms (not just check terms).
+Each claim has a specific evaluation procedure. See `references/protocols/assurance-protocol.md` for the full per-claim procedures, including:
 
-#### Claim: artifact_integrity
+- Default catalog claims (artifact_integrity, tool_contract_soundness, workflow_termination, skill_definition_completeness, routing_totality, observability_integrity, configuration_validity)
+- Claims with `runtime` or `adversarial` methods (currently report `unverified`)
+- Custom claims (from `.orpheus/claims.yaml`)
 
-**Dispatch registry-updater** with operation="scan".
+Quick reference for default catalog claims:
 
-Additionally verify yourself:
-- Every skill entry in registry.yaml has a `path` that points to an existing SKILL.md file
-- Every skill entry has a `contract` that points to an existing contract.yaml file
-- No skill directories exist on disk that aren't listed in the registry (orphaned)
-- All skill names are unique across orchestrator, experts, and workers sections
-- Version strings follow semantic versioning
+| Claim | Worker | Status (when passing) |
+|---|---|---|
+| `artifact_integrity` | registry-updater (scan) | `attested` |
+| `tool_contract_soundness` | contract-compat-checker | `checked` |
+| `workflow_termination` | dag-validator | `proven` |
+| `skill_definition_completeness` | (inline) | `checked` |
+| `routing_totality` | (inline) | `checked` |
+| `observability_integrity` | log-analyzer (health_check) | `attested` |
+| `configuration_validity` | (inline) | `attested` |
 
-**Record:**
-- Collect file paths read and their sha256 hashes → evidence items of type `file_hash`
-- Status: `attested` if all entries valid; retain status but add exceptions for orphans/missing files
-- Exception severities: orphaned files = `advisory`; missing files = `blocker`
-
-#### Claim: tool_contract_soundness
-
-**Dispatch contract-compat-checker** with scope="full".
-
-**Record:**
-- Evidence item type `contract_chain_check`, checker `contract-compat-checker`, result_summary from worker output
-- Status: `checked` (validation method is `policy-as-code`)
-- Exceptions: unused output fields → `advisory`; missing required fields or type mismatches → `blocker`
-
-#### Claim: workflow_termination
-
-**Dispatch dag-validator** with the system path.
-
-**Record:**
-- Evidence item type `dag_snapshot`, source `registry.yaml`, hash of registry.yaml, result_summary from worker
-- Status: `proven` — this is the ONE claim that earns the `proof` label because DAG acyclicity is mathematically decidable
-- Exceptions: orphaned jobs → `warning`; cycles or dangling references → `blocker`
-
-#### Claim: skill_definition_completeness
-
-Perform this check directly (no worker needed). For each SKILL.md in the system:
-
-- [ ] Frontmatter has required fields: name, description, type, version
-- [ ] Frontmatter has `orpheus.system` matching the system name
-- [ ] Expert SKILL.md files have an "Execution Protocol" section (or similar multi-phase protocol)
-- [ ] Expert SKILL.md files have a "Quality Gate" section
-- [ ] All SKILL.md files have a "Logging Protocol" section
-- [ ] Worker SKILL.md files have a "Task Protocol" section
-- [ ] Worker SKILL.md files have an "Output Format" section
-- [ ] Worker SKILL.md files have a "Constraints" section
-- [ ] No SKILL.md exceeds 500 lines (warning threshold)
-
-**Record:**
-- Evidence item type `skill_md_audit`, one per skill, with hash of the SKILL.md file and a list of sections found
-- Status: `checked` (`policy-as-code` — mechanical rule applied to file contents)
-- Exceptions: missing non-critical section (e.g., Anti-Patterns) → `advisory`; missing critical section (no Execution Protocol) → `blocker`; line count warning → `warning`
-
-#### Claim: routing_totality
-
-Perform this check directly. Read the orchestrator SKILL.md:
-
-- [ ] Routing rules exist for every expert listed in the registry
-- [ ] A default/catch-all routing rule exists (or explicit handling for unmatched requests)
-- [ ] No ambiguous routing patterns (two rules could match the same input)
-- [ ] Available experts table matches the registry's expert list
-- [ ] Available workers summary is present
-
-**Record:**
-- Evidence item type `routing_coverage_map`, containing which expert → which routing rule(s)
-- Status: `checked`
-- Exceptions: missing catch-all → `warning`; experts with no routing rule → `blocker`
-
-#### Claim: observability_integrity
-
-**Dispatch log-analyzer** with operation="health_check".
-
-Additionally verify:
-- `.orpheus/logs/` directory exists
-- `build/` and `runtime/` subdirectories exist
-- For recent executions: check if assembled views exist (timeline, decisions, errors)
-
-**Record:**
-- Evidence item type `log_inspection`, with list of executions checked and their assembly status
-- Status: `attested` (method is `evidence`)
-- Exceptions: executions missing assembled views → `warning`; missing or corrupt log structure → `blocker`
-
-#### Claim: configuration_validity
-
-Perform this check directly. Read `.orpheus/system.yaml`:
-
-- [ ] `system.name` exists and is non-empty
-- [ ] `orchestrator.strategy` is one of: sequential, parallel, adaptive
-- [ ] `orchestrator.max_retries` is a non-negative integer
-- [ ] `orchestrator.timeout_seconds` is a positive number
-- [ ] `orchestrator.escalation` is one of: user, skip, fallback
-- [ ] `logging.level` is one of: trace, debug, info, warn, error
-- [ ] `logging` boolean fields are actual booleans
-- [ ] `.orpheus/scripts/` directory exists with runtime scripts (self-contained systems requirement)
-
-**Record:**
-- Evidence item type `config_snapshot`, hash of system.yaml, list of scripts present in scripts/
-- Status: `attested`
-- Exceptions: using defaults for optional fields → `advisory`; invalid required values or missing scripts → `blocker`
-
-#### Claims with validation_method `runtime` or `adversarial`
-
-These validation methods are not currently implemented. The Auditor reports them as:
-
-- Record status: `unverified`
-- Evidence: empty list
-- Exceptions: empty list
-- `reason` field: `"Validation method '{method}' is not currently implemented"`
-
-This is intentional. The evidence package should surface what ORPHEUS does NOT yet validate, not hide it from the reviewer.
-
-#### Custom claims (from `.orpheus/claims.yaml`)
-
-If the matrix contains claims not in the default catalog:
-
-1. Read the claim's `checker` field.
-2. If a worker is specified: dispatch it with the parameters.
-3. If no checker: attempt direct evaluation based on `evidence_source` (read files, verify existence and well-formedness at minimum).
-4. If evaluation cannot be performed: status `unverified`, reason `"No checker defined and direct evaluation not possible for this claim"`.
+Status assignment is governed by the **No Labeling Up** rule — see `assurance-protocol.md` for the full validation method → permitted status table. The Auditor must never report a status stronger than the claim's declared method allows.
 
 ### Phase 3: Compute Renewal Triggers
 
 Compute which claims need re-validation because their inputs changed since the previous audit.
 
-For each claim in the matrix, determine whether it needs re-validation because its inputs changed since the last audit.
+See `references/protocols/assurance-protocol.md` for the detailed procedure (file hash comparison, mtime fallback, first-audit handling).
 
-1. **If no previous evidence package exists** (first audit of this system): `renewal_triggers_active = []`. Skip the rest of this phase.
+Quick reference:
 
-2. **For each claim evaluated in Phase 2:**
-   - Find the same claim in the previous evidence package by `id`.
-   - For each evidence item with a `hash` field: compare against the previous run's hash for the same source file.
-   - For file paths in `evidence_source` that don't appear in the current evidence items (because the claim was skipped or the file didn't exist): check mtime against the previous audit's `audited_at`.
-   - If any source file changed after the previous audit, add a renewal trigger entry:
-     ```yaml
-     claim_id: "{claim.id}"
-     reason: "{specific file} modified {mtime}, after last audit at {previous.audited_at}"
-     recommended_action: "re-run audit"
-     ```
-
-3. **LOG:** renewal_triggers_computed — count of claims flagged, which files changed.
+1. If no previous evidence package exists → `renewal_triggers_active = []`; skip the rest
+2. For each evaluated claim, compare evidence hashes / file mtimes against the previous audit
+3. Add a renewal trigger entry for each file that changed after the previous `audited_at`
+4. LOG: `renewal_triggers_computed` with count and changed file list
 
 ### Phase 4: Compile Health Report and Evidence Package
 
