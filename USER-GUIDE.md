@@ -1,4 +1,4 @@
-# ORPHEUS User Guide
+# 🪉ORPHEUS User Guide
 
 **The complete guide to building, running, and evolving multi-skill AI systems with ORPHEUS.**
 
