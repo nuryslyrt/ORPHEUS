@@ -12,7 +12,7 @@
 <a href="#installation">Install</a> &nbsp;|&nbsp;
 <a href="#quick-start">Quick Start</a> &nbsp;|&nbsp;
 <a href="https://thinkingtokens.ai/2026/04/orpheus-framework/">Blog Post</a> &nbsp;|&nbsp;
-<a href="PRINCIPLES.md">Principles</a>
+<a href="PRINCIPLES.md">Principles</a> &nbsp;|&nbsp;
 <a href="USER-GUIDE.md">User Guide</a>         
 </td>
 </tr>
